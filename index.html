@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        html {
+            height: 100%
+        }
+
+        body {
+            background: linear-gradient(to right, #ffd000 0%, #5500ff 100%);
+            text-align: center;
+        }
+
+        .container {
+            margin: auto;
+            max-width: 800px;
+        }
+
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <canvas id="canvas" width="600" height="600"></canvas>
+        <p id="score"></p>
+    </div>
+</body>
+<script>
+    // Yagzul! Canvas lives..
+    const canvas = document.getElementById("canvas")
+    const score = document.getElementById("score")
+    const ctx = canvas.getContext("2d")
+
+    const colours = {
+        SunYellow: "#ffd000",
+        MoonPurple: "#5500ff"
+    }
+
+    const DAY_COLOUR = colours.SunYellow
+    const NIGHT_COLOUR = colours.MoonPurple
+
+    const SQUARE_SIZE = 25
+    const MIN_SPEED = 5
+    const MAX_SPEED = 10
+
+    const gridWidth = canvas.width / SQUARE_SIZE
+    const gridHeight = canvas.height / SQUARE_SIZE
+
+    let dayScore = 0
+    let nightScore = 0
+
+    const balls = [
+        { // Left ball, destroys night and is night colour
+            x: canvas.width / 4,
+            y: canvas.height / 2,
+            dx: 8, //Initial vel x, y below
+            dy: -8,
+            colour: NIGHT_COLOUR,
+            reverseColour: DAY_COLOUR
+        },
+        {
+            x: (canvas.width / 4) * 3,
+            y: canvas.height / 2,
+            dx: -8,
+            dy: 8,
+            colour: DAY_COLOUR,
+            reverseColour: NIGHT_COLOUR
+        }
+    ]
+
+    const squares = []
+
+    // Initial grid draw
+    for (let i = 0; i < gridWidth; i++) {
+        squares[i] = []
+        for (let j = 0; j < gridHeight; j++) {
+            squares[i][j] = i < gridWidth / 2 ? DAY_COLOUR : NIGHT_COLOUR
+        }
+    }
+
+    // Funcs
+
+    function rad2deg(rad) {
+        return rad * (180 / Math.PI)
+    }
+
+    function drawSquares() {
+        dayScore = 0
+        nightScore = 0
+
+        for (let i = 0; i < gridWidth; i++) {
+            for (let j = 0; j < gridHeight; j++) {
+                ctx.fillStyle = squares[i][j]
+                ctx.fillRect(i * SQUARE_SIZE, j * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE)
+                if (squares[i][j] == DAY_COLOUR) dayScore++
+                if (squares[i][j] == NIGHT_COLOUR) nightScore++
+            }
+        }
+    }
+
+    function drawBall(ball) {
+        console.log(ball.colour)
+        ctx.beginPath()
+        ctx.arc(ball.x, ball.y, SQUARE_SIZE / 2, 0, Math.PI * 2)
+        ctx.fillStyle = ball.colour
+        ctx.fill()
+        ctx.closePath()
+    }
+
+    function squareCollision(ball) {
+        for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+            console.log(rad2deg(angle))
+
+            const checkX = ball.x + Math.cos(angle) * (SQUARE_SIZE / 2)
+            const checkY = ball.y + Math.sin(angle) * (SQUARE_SIZE / 2)
+
+            const i = Math.floor(checkX / SQUARE_SIZE)
+            const j = Math.floor(checkY / SQUARE_SIZE)
+
+            if (i >= 0 && i < gridWidth && j >= 0 && j < gridHeight) {
+                if (squares[i][j] != ball.reverseColour) {
+                    squares[i][j] = ball.reverseColour
+
+                    if (Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))) {
+                        ball.dx = -ball.dx
+                    } else {
+                        ball.dy = -ball.dy
+                    }
+                }
+            }
+        }
+    }
+
+    function boundaryCollision(ball) {
+        // ball position exceeds right boundary, as canvas width - square size / 2 is smaller. This is done to check collision on edges
+        // of ball instead of center by offsetting collision check by -squaresize/2 from the right
+        // OR
+        // if ball position is less than square size / 2 we know ball has hit left side since coords for left is 0 + squaresize/2 for center offset 
+        // this is done for both X and Y, although example is for x
+        if (ball.x + ball.dx > canvas.width - SQUARE_SIZE / 2 || ball.x + ball.dx < SQUARE_SIZE / 2) {
+            ball.dx = -ball.dx
+        }
+        if (ball.y + ball.dy > canvas.height - SQUARE_SIZE / 2 || ball.y + ball.dy < SQUARE_SIZE / 2) {
+            ball.dy = -ball.dy
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        drawSquares()
+
+        balls.forEach(ball => {
+            drawBall(ball)
+            squareCollision(ball)
+            boundaryCollision(ball)
+            ball.x += ball.dx
+            ball.y += ball.dy
+        })
+
+        score.textContent = `Day: ${dayScore} Night: ${nightScore}`
+        requestAnimationFrame(draw)
+    }
+
+    requestAnimationFrame(draw)
+
+</script>
+
+</html>
